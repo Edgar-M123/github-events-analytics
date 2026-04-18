@@ -1,0 +1,8 @@
+
+sources:
+  - name: github
+    database: analytics
+    schema: raw
+    tables:
+      - name: github_events
+        description: Github data from GH Archive

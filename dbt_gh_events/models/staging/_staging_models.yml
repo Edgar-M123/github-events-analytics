@@ -1,0 +1,25 @@
+
+version: 2
+
+models:
+  - name: stg_all_events
+    description: Staging model for all github event data
+    columns:
+      - name: event_id
+        description: Unique ID for the event. Should not be null.
+        type: integer
+        data_tests:
+          - unique
+          - not_null
+      - name: event_type
+        description: Indicator for the type of event. Should not be null.
+        type: string
+        data_tests:
+          - accepted_values:
+              values: ['CommitCommentEvent', 'CreateEvent', 'DeleteEvent', 'DiscussionEvent', 'ForkEvent', 'GollumEvent', 'IssueCommentEvent', 'IssuesEvent', 'MemberEvent', 'PublicEvent', 'PullRequestEvent', 'PullRequestReviewEvent', 'PullRequestReviewCommentEvent', 'PushEvent', 'ReleaseEvent', 'WatchEvent']
+          - not_null
+      - name: user_id
+        description: Id of the user who initiated the event.
+        type: integer
+        data_tests:
+          - not_null
