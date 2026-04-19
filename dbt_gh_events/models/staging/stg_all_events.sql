@@ -1,5 +1,16 @@
 
 
+with source as (
+    select * from {{ source('github', 'github_events') }}
+),
+
+deduplicated_event_ids as (
+    select
+        *,
+        row_number() over (partition by id) as id_row_num
+    from source
+)
+
 select
     id as event_id,
     type as event_type,
@@ -20,7 +31,8 @@ select
     org.url as organization_api_url,
     org.gravatar_id as organization_gravatar_id,
     org.avatar_url as organization_avatar_url
-from {{ source('github', 'github_events') }}
+from deduplicated_event_ids
+where id_row_num = 1
 
 
 

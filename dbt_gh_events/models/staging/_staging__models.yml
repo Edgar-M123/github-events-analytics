@@ -3,7 +3,9 @@ version: 2
 
 models:
   - name: stg_all_events
-    description: Staging model for all github event data
+    description: >
+      Staging model for all github event data.
+      It removes duplicate events by getting the first event with the same event id.
     columns:
       - name: event_id
         description: Unique ID for the event. Should not be null.
