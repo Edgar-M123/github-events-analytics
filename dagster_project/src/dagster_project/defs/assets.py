@@ -34,7 +34,7 @@ def gh_events_json_gz(bigquery: BigQueryResource):
         bq.SchemaField("created_at", "TIMESTAMP"),
         bq.SchemaField("org", "STRUCT", fields=[
             bq.SchemaField("id", "STRING"),
-            bq.SchemaField("name", "STRING"),
+            bq.SchemaField("login", "STRING"),
             bq.SchemaField("url", "STRING"),
             bq.SchemaField("gravatar_id", "STRING"),
             bq.SchemaField("avatar_url", "STRING"),
@@ -58,7 +58,7 @@ def gh_events_json_gz(bigquery: BigQueryResource):
                     source_format=bq.SourceFormat.NEWLINE_DELIMITED_JSON,
                     schema=json_schema,
                     autodetect=True,
-                    write_disposition=bq.WriteDisposition.WRITE_APPEND,
+                    write_disposition=bq.WriteDisposition.WRITE_TRUNCATE,
                     ignore_unknown_values=True
                 )
 
@@ -75,7 +75,7 @@ def gh_events_json_gz(bigquery: BigQueryResource):
                 job_config = bq.LoadJobConfig(
                     source_format=bq.SourceFormat.NEWLINE_DELIMITED_JSON,
                     schema=json_schema,
-                    write_disposition=bq.WriteDisposition.WRITE_TRUNCATE,
+                    write_disposition=bq.WriteDisposition.WRITE_APPEND,
                     ignore_unknown_values=True
                 )
 
