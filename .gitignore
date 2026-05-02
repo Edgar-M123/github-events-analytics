@@ -1,4 +1,5 @@
 *.duckdb
 *.csv
 logs/
-
+*.env
+google-dbt-user-service-account-key.json
