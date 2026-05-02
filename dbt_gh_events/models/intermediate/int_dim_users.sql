@@ -29,7 +29,7 @@ select
     user_profile_api_url,
     user_avatar_url,
     valid_from,
-    case when valid_to = max_event_timestamp then make_date(9999, 12, 31) else valid_to end as valid_to
+    case when valid_to = max_event_timestamp then CAST(DATE(9999, 12, 31) as TIMESTAMP) else valid_to end as valid_to
 from max_timestamp
 
 
