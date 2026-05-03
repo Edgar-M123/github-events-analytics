@@ -1,3 +1,4 @@
+import re
 import dagster as dg
 from dagster_gcp import BigQueryResource
 import datetime as dt
@@ -6,12 +7,15 @@ import requests
 import io
 import gzip
 
-@dg.asset
-def gh_events_json_gz(bigquery: BigQueryResource):
+hourly_partitions = dg.HourlyPartitionsDefinition(start_date=dt.datetime(2026,1,1,0), end_date=dt.datetime(2026,1,1,3), fmt='%Y-%m-%d-%H')
 
-    dates = [(dt.datetime(year=2026, month=1, day=1) + dt.timedelta(hours=x)).strftime('%Y-%m-%d-%-H') for x in range(3)]
-    table_name = "raw.github_events"
+@dg.asset(partitions_def=hourly_partitions)
+def gh_events_json_gz(context: dg.AssetExecutionContext, bigquery: BigQueryResource):
 
+    date = re.sub(r"0(?=\d$)", "", context.partition_key)
+    print(f"date: {date}")
+
+    # dates = [(dt.datetime(year=2026, month=1, day=1) + dt.timedelta(hours=x)).strftime('%Y-%m-%d-%-H') for x in range(3)]
 
     json_schema = [
         bq.SchemaField("id", "STRING"),
@@ -39,53 +43,34 @@ def gh_events_json_gz(bigquery: BigQueryResource):
             bq.SchemaField("gravatar_id", "STRING"),
             bq.SchemaField("avatar_url", "STRING"),
         ]),
+        bq.SchemaField("loaded_at", "DATE", default_value_expression=f"DATE '{re.sub(r'-\d\d$', '', context.partition_key)}'")
     ]
 
 
     with bigquery.get_client() as client:
         table_ref = client.dataset("raw").table("github_events")
 
-        for i, date in enumerate(dates):
-            print(f"Reading data for {date}")
-            url = f"https://data.gharchive.org/{date}.json.gz"
-            res = requests.get(url)
-            gzip_data = res.content
+        print(f"Reading data for {date}")
+        url = f"https://data.gharchive.org/{date}.json.gz"
+        res = requests.get(url)
+        gzip_data = res.content
 
-            json_data = gzip.decompress(gzip_data)
+        json_data = gzip.decompress(gzip_data)
 
-            if i == 0:
-                job_config = bq.LoadJobConfig(
-                    source_format=bq.SourceFormat.NEWLINE_DELIMITED_JSON,
-                    schema=json_schema,
-                    autodetect=True,
-                    write_disposition=bq.WriteDisposition.WRITE_TRUNCATE,
-                    ignore_unknown_values=True
-                )
+        job_config = bq.LoadJobConfig(
+            source_format=bq.SourceFormat.NEWLINE_DELIMITED_JSON,
+            schema=json_schema,
+            write_disposition=bq.WriteDisposition.WRITE_APPEND,
+            ignore_unknown_values=True
+        )
 
-                job = client.load_table_from_file(
-                    file_obj=io.BytesIO(json_data),
-                    destination=table_ref,
-                    job_config=job_config
-                )
-                
-                job.result()
-
-
-            else:
-                job_config = bq.LoadJobConfig(
-                    source_format=bq.SourceFormat.NEWLINE_DELIMITED_JSON,
-                    schema=json_schema,
-                    write_disposition=bq.WriteDisposition.WRITE_APPEND,
-                    ignore_unknown_values=True
-                )
-
-                job = client.load_table_from_file(
-                    file_obj=io.BytesIO(json_data),
-                    destination=table_ref,
-                    job_config=job_config
-                )
-
-                job.result()
+        job = client.load_table_from_file(
+            file_obj=io.BytesIO(json_data),
+            destination=table_ref,
+            job_config=job_config
+        )
+        
+        job.result()
 
 
 @dg.asset_check(asset='gh_events_json_gz')
